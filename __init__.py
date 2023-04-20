@@ -1,20 +1,3 @@
-# Automatic Merge Block Weighted for ComfyUI
-# put this file in ComfyUI/custom_nodes/
-
-# pseudo README.md:
-
-# does not work with --highvram flag. this will be fixed
-
-# sampler settings (ddim, 20 steps, cfg7) are arbitrary and hard-coded
-# so is BLOCK_ORDER. no testing was done to show these settings are better
-# clip and vae are not modified. resulting model filename is bad, sorry
-
-# increasing search_depth increases processing time exponentially
-# increasing sample_count increases processing time linearly
-
-# modifying defaults don't necessarily improve results. results are 99%
-# dependent on the cafe classifer models from HF
-
 import math
 import pathlib
 import time
