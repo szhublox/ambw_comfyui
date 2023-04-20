@@ -1,7 +1,7 @@
 Auto-MBW for [ComfyUI](https://github.com/comfyanonymous/ComfyUI) loosely based on [sdweb-auto-MBW](https://github.com/Xerxemi/sdweb-auto-MBW)
 
 ### Purpose
-This node "advanced > auto merge block weighted" takes two models, merges individual blocks together at various ratios, and automatically rates each merge, keeping the ratio with the highest score. The resulting model will contain the text encoder and VAE sent to the node, without modification. Whether this is a good idea or not is anyone's guess. In practice this makes models that make images the classifier says are good.
+This node "advanced > auto merge block weighted" takes two models, merges individual blocks together at various ratios, and automatically rates each merge, keeping the ratio with the highest score. Whether this is a good idea or not is anyone's guess. In practice this makes models that make images the classifier says are good.
 
 ### Settings
 - Prompt: to generate sample images to be rated
@@ -23,3 +23,4 @@ Currently this only supports [cafeai](https://huggingface.co/cafeai) "aesthetic"
 - many hardcoded settings are arbitrary - such as the sampler and block processing order
 - generated images are not saved
 - the final model is saved in the models/checkpoints directory with a timestamped name
+- The resulting model will contain the text encoder and VAE sent to the node, without modification.
