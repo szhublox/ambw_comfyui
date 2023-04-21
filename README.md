@@ -16,11 +16,11 @@ To calculate ratios to test, the node branches out from powers of 0.5
 - A depth of 6 will examine 33 different ratios
 
 ### Classifier
-Currently this only supports [cafeai](https://huggingface.co/cafeai) "aesthetic" and "waifu" models.
+The classifier models have been taken from the sdweb-auto-MBW repo
 
 ### Notes
 - --highvram flag recommended - both models will be kept in VRAM and the process is much faster
 - many hardcoded settings are arbitrary - such as the sampler and block processing order
 - generated images are not saved
 - the final model is saved in the models/checkpoints directory with a timestamped name
-- The resulting model will contain the text encoder and VAE sent to the node, without modification.
+- the resulting model will contain the text encoder and VAE sent to the node, without modification.
