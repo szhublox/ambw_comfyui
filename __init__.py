@@ -1,5 +1,7 @@
+import importlib
 import math
 import pathlib
+import sys
 import time
 import warnings
 
@@ -7,30 +9,16 @@ import numpy as np
 from PIL import Image
 import torch
 import tqdm
-import transformers
 
 import folder_paths
 import model_management
 import nodes
 
-import sys
 sys.path.append(str(pathlib.Path(__file__).parent))
+import classifiers
 
-CAFE_MODELS = {"cafe_aesthetic": 2, "cafe_waifu": 5}
 BLOCK_ORDER = [12, 11, 13, 10, 14, 9, 15, 8, 16, 7, 17, 6, 18,
                5, 19, 4, 20, 3, 21, 2, 22, 1, 23, 0, 24]
-
-
-def run_cafe_classifier(image, classifier):
-    import transformers
-    pipe = transformers.pipeline(
-        "image-classification",
-        model=f"cafeai/{classifier}")
-    result = pipe(image, top_k=CAFE_MODELS[classifier])
-    for data in result:
-        if data['label'] == classifier.split("_")[1]:
-            return data['score']
-
 
 class AutoMBW:
     def __init__(self):
@@ -54,7 +42,7 @@ class AutoMBW:
                 }),
                 "search_depth": ("INT", {"default": 4, "min": 2}),
                 "sample_count": ("INT", {"default": 1, "min": 1}),
-                "classifier": (["aesthetic", "laion", "cafe_aesthetic", "cafe_waifu"],),
+                "classifier": (classifiers.__all__,),
             }}
 
     RETURN_TYPES = ()
@@ -92,14 +80,7 @@ class AutoMBW:
             with warnings.catch_warnings():
                 # several possible transformers nags
                 warnings.filterwarnings('ignore')
-                if self.classifier.startswith("cafe_"):
-                    rating += run_cafe_classifier(image, self.classifier)
-                elif self.classifier == "laion":
-                    import laion.score_laion_sac_logos_ava_v2
-                    rating += laion.score_laion_sac_logos_ava_v2.score(image)
-                elif self.classifier == "aesthetic":
-                    import aesthetic.score_aes_B32_v0
-                    rating += aesthetic.score_aes_B32_v0.score(image)
+                rating += self.classifier(image)
         return rating
 
     def search(self, block, current, start, depth, maximum):
@@ -130,7 +111,8 @@ class AutoMBW:
         self.negative = [[clip.encode(negative), {}]]
         self.search_depth = search_depth
         self.sample_count = sample_count
-        self.classifier = classifier
+        self.classifier = importlib.import_module(
+            "." + classifier, "classifiers").score
 
         # model setup
         if model_management.vram_state == model_management.VRAMState.HIGH_VRAM:

@@ -1,6 +1,9 @@
-import torch
+import pathlib
+
 import numpy as np
 import clip
+import torch
+import safetensors
 
 use_cuda = torch.cuda.is_available()
 
@@ -45,3 +48,13 @@ class MLP(torch.nn.Module):
 
     def forward(self, x):
         return self.layers(x)
+
+dirname = pathlib.Path(__file__).parent
+aesthetic_path = dirname.joinpath("laion-sac-logos-ava-v2.safetensors")
+aes_model = MLP(768).to('cuda').eval()
+aes_model.load_state_dict(safetensors.torch.load_file(aesthetic_path))
+
+def score(image):
+    image_embeds = image_embeddings_direct_laion(image)
+    prediction = aes_model(torch.from_numpy(image_embeds).float().to('cuda'))
+    return prediction.item()
