@@ -60,6 +60,7 @@ class AutoMBW:
             self.blocks_backup[key] = sd1[key].clone()
             sd1[key].copy_(sd1[key] * (1 - ratio) + sd2[key] * ratio)
 
+    @torch.no_grad()
     def unmerge(self):
         sd1 = self.model1.model.state_dict()
 
@@ -142,16 +143,12 @@ class AutoMBW:
             print(self.ratios)
 
         sd1 = self.model1.model.state_dict()
-        precision = sd1['model.diffusion_model.middle_block.1.' \
-                        + 'transformer_blocks.0.attn1.to_q.weight'].dtype
         vae = vae.first_stage_model.state_dict()
         for key in vae:
-            sd1[f"first_stage_model.{key}"] = torch.as_tensor(vae[key],
-                                                              dtype=precision)
+            sd1[f"first_stage_model.{key}"] = vae[key]
         clip = clip.cond_stage_model.state_dict()
         for key in clip:
-            sd1[f"cond_stage_model.{key}"] = torch.as_tensor(clip[key],
-                                                             dtype=precision)
+            sd1[f"cond_stage_model.{key}"] = clip[key]
 
         filename = pathlib.Path(folder_paths.folder_names_and_paths[
             "checkpoints"][0][0]).joinpath(f"ambw{int(time.time())}")

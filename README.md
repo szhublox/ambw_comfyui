@@ -23,4 +23,5 @@ The classifier models have been taken from the sdweb-auto-MBW repo
 - many hardcoded settings are arbitrary - such as the sampler and block processing order
 - generated images are not saved
 - the final model is saved in the models/checkpoints directory with a timestamped name
-- the resulting model will contain the text encoder and VAE sent to the node, without modification.
+- the resulting model will contain the text encoder and VAE sent to the node
+- the unet will (probably) be fp16 and the rest fp32. that's how they're sent to the node
