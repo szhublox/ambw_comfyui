@@ -13,20 +13,22 @@ import folder_paths
 import model_management
 import nodes
 
-AESTHETIC_MODELS = {"aesthetic": 2, "waifu": 5}
+import sys
+sys.path.append(str(pathlib.Path(__file__).parent))
+
+CAFE_MODELS = {"cafe_aesthetic": 2, "cafe_waifu": 5}
 BLOCK_ORDER = [12, 11, 13, 10, 14, 9, 15, 8, 16, 7, 17, 6, 18,
                5, 19, 4, 20, 3, 21, 2, 22, 1, 23, 0, 24]
 
 
-def run_classifier(tensors, classifier):
-    image = Image.fromarray(np.clip(255. * tensors.cpu().numpy().squeeze(),
-                                    0, 255).astype(np.uint8))
+def run_cafe_classifier(image, classifier):
+    import transformers
     pipe = transformers.pipeline(
         "image-classification",
-        model=f"cafeai/cafe_{classifier}")
-    result = pipe(image, top_k=AESTHETIC_MODELS[classifier])
+        model=f"cafeai/{classifier}")
+    result = pipe(image, top_k=CAFE_MODELS[classifier])
     for data in result:
-        if data['label'] == classifier:
+        if data['label'] == classifier.split("_")[1]:
             return data['score']
 
 
@@ -52,7 +54,7 @@ class AutoMBW:
                 }),
                 "search_depth": ("INT", {"default": 4, "min": 2}),
                 "sample_count": ("INT", {"default": 1, "min": 1}),
-                "classifier": (["aesthetic", "waifu"],),
+                "classifier": (["aesthetic", "laion", "cafe_aesthetic", "cafe_waifu"],),
             }}
 
     RETURN_TYPES = ()
@@ -77,19 +79,28 @@ class AutoMBW:
             sd1[key].copy_(self.blocks_backup[key])
 
     def rate_model(self):
-        score = 0
+        rating = 0
         for i in range(self.sample_count):
             latent = nodes.common_ksampler(
                 self.model1, i, 20, 7.0, "ddim", "normal", self.prompt,
                 self.negative, {"samples": torch.zeros([1, 4, 64, 64])},
                 denoise=1.0)
-            image = self.vae.decode(latent[0]["samples"])
+            decoded = self.vae.decode(latent[0]["samples"])
+            image = Image.fromarray(
+                np.clip(255. * decoded.cpu().numpy().squeeze(),
+                        0, 255).astype(np.uint8))
             with warnings.catch_warnings():
                 # several possible transformers nags
                 warnings.filterwarnings('ignore')
-                score += run_classifier(
-                    image, self.classifier) / self.sample_count
-        return score
+                if self.classifier.startswith("cafe_"):
+                    rating += run_cafe_classifier(image, self.classifier)
+                elif self.classifier == "laion":
+                    import laion.score_laion_sac_logos_ava_v2
+                    rating += laion.score_laion_sac_logos_ava_v2.score(image)
+                elif self.classifier == "aesthetic":
+                    import aesthetic.score_aes_B32_v0
+                    rating += aesthetic.score_aes_B32_v0.score(image)
+        return rating
 
     def search(self, block, current, start, depth, maximum):
         if depth > self.search_depth or current > 1 or current < 0:
