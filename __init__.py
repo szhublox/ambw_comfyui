@@ -2,7 +2,6 @@ import importlib
 import math
 import pathlib
 import sys
-import time
 import warnings
 
 import numpy as np
@@ -43,6 +42,7 @@ class AutoMBW:
                 "search_depth": ("INT", {"default": 4, "min": 2}),
                 "sample_count": ("INT", {"default": 1, "min": 1}),
                 "classifier": (classifiers.__all__,),
+                "filename": ("STRING", { "multiline": False, "default": "ambw" }),
             }}
 
     RETURN_TYPES = ()
@@ -103,7 +103,7 @@ class AutoMBW:
         return maximum
 
     def ambw(self, model1, model2, clip, vae, prompt, negative, search_depth,
-             sample_count, classifier):
+             sample_count, classifier, filename):
         # python setup
         self.model1 = model1
         self.model2 = model2
@@ -150,14 +150,24 @@ class AutoMBW:
         for key in clip:
             sd1[f"cond_stage_model.{key}"] = clip[key]
 
+        create_ckpt = False
+        if filename.endswith(".safetensors"):
+            filename = filename[0:-12]
+        elif filename.endswith(".ckpt"):
+            filename = filename[0:-5]
+            create_ckpt = True
+
         filename = pathlib.Path(folder_paths.folder_names_and_paths[
-            "checkpoints"][0][0]).joinpath(f"ambw{int(time.time())}")
+            "checkpoints"][0][0]).joinpath(f"{filename}")
         print(f"saving as {filename}", end="")
-        try:
-            import safetensors.torch
-            print(".safetensors")
-            safetensors.torch.save_file(sd1, f"{filename}.safetensors")
-        except ModuleNotFoundError:
+        if not create_ckpt:
+            try:
+                import safetensors.torch
+                print(".safetensors")
+                safetensors.torch.save_file(sd1, f"{filename}.safetensors")
+            except ModuleNotFoundError:
+                create_ckpt = True
+        if create_ckpt:
             print(".ckpt")
             torch.save(sd1, f"{filename}.ckpt")
 
