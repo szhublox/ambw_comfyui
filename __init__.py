@@ -15,11 +15,12 @@ import nodes
 
 sys.path.append(str(pathlib.Path(__file__).parent))
 import classifiers
+from nodes_model_merging import CheckpointSave
 
 BLOCK_ORDER = [12, 11, 13, 10, 14, 9, 15, 8, 16, 7, 17, 6, 18,
                5, 19, 4, 20, 3, 21, 2, 22, 1, 23, 0, 24]
 
-class AutoMBW:
+class AutoMBW(CheckpointSave):
     def __init__(self):
         self.type = "output"
 
@@ -42,7 +43,7 @@ class AutoMBW:
                 "search_depth": ("INT", {"default": 4, "min": 2}),
                 "sample_count": ("INT", {"default": 1, "min": 1}),
                 "classifier": (classifiers.__all__,),
-                "filename": ("STRING", { "multiline": False, "default": "ambw" }),
+                "filename_prefix": ("STRING", { "multiline": False, "default": "ambw" }),
             }}
 
     RETURN_TYPES = ()
@@ -103,8 +104,9 @@ class AutoMBW:
         return maximum
 
     def ambw(self, model1, model2, clip, vae, prompt, negative, search_depth,
-             sample_count, classifier, filename):
+             sample_count, classifier, filename_prefix):
         # python setup
+        self.output_dir = folder_paths.get_output_directory()
         self.model1 = model1
         self.model2 = model2
         self.vae = vae
@@ -142,34 +144,7 @@ class AutoMBW:
             self.merge(block, self.ratios[block])
             print(self.ratios)
 
-        sd1 = self.model1.model.state_dict()
-        vae = vae.first_stage_model.state_dict()
-        for key in vae:
-            sd1[f"first_stage_model.{key}"] = vae[key]
-        clip = clip.cond_stage_model.state_dict()
-        for key in clip:
-            sd1[f"cond_stage_model.{key}"] = clip[key]
-
-        create_ckpt = False
-        if filename.endswith(".safetensors"):
-            filename = filename[0:-12]
-        elif filename.endswith(".ckpt"):
-            filename = filename[0:-5]
-            create_ckpt = True
-
-        filename = pathlib.Path(folder_paths.folder_names_and_paths[
-            "checkpoints"][0][0]).joinpath(f"{filename}")
-        print(f"saving as {filename}", end="")
-        if not create_ckpt:
-            try:
-                import safetensors.torch
-                print(".safetensors")
-                safetensors.torch.save_file(sd1, f"{filename}.safetensors")
-            except ModuleNotFoundError:
-                create_ckpt = True
-        if create_ckpt:
-            print(".ckpt")
-            torch.save(sd1, f"{filename}.ckpt")
+        self.save(self.model1, clip, vae, filename_prefix)
 
         return ()
 
