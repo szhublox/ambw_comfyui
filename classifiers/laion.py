@@ -3,7 +3,7 @@ import pathlib
 import numpy as np
 import clip
 import torch
-import safetensors
+import safetensors.torch
 
 use_cuda = torch.cuda.is_available()
 
